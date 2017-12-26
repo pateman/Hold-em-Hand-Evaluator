@@ -5,7 +5,7 @@ public final class Card implements Comparable<Card> {
   private final CardValue value;
   private final Suit suit;
 
-  Card(CardValue value, Suit suit) {
+  public Card(CardValue value, Suit suit) {
     this.value = value;
     this.suit = suit;
   }
@@ -38,10 +38,7 @@ public final class Card implements Comparable<Card> {
 
     Card card = (Card) o;
 
-    if (getValue() != card.getValue()) {
-      return false;
-    }
-    return getSuit() == card.getSuit();
+    return getValue() == card.getValue() && getSuit() == card.getSuit();
   }
 
   @Override
