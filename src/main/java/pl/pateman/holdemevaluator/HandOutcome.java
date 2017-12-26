@@ -5,13 +5,10 @@ import java.util.Arrays;
 public final class HandOutcome {
 
   private HandName handName;
-  private int highestCard;
-  private int lowestCard;
+  private Card highestCard;
   private Card[] topCards;
 
   HandOutcome() {
-    this.highestCard = CardValue.TWO.getValue();
-    this.lowestCard = CardValue.KING.getValue();
     this.handName = HandName.HIGH_CARD;
   }
 
@@ -23,20 +20,12 @@ public final class HandOutcome {
     this.handName = handName;
   }
 
-  public int getHighestCard() {
+  public Card getHighestCard() {
     return highestCard;
   }
 
-  void setHighestCard(int highestCard) {
+  void setHighestCard(Card highestCard) {
     this.highestCard = highestCard;
-  }
-
-  public int getLowestCard() {
-    return lowestCard;
-  }
-
-  void setLowestCard(int lowestCard) {
-    this.lowestCard = lowestCard;
   }
 
   public Card[] getTopCards() {

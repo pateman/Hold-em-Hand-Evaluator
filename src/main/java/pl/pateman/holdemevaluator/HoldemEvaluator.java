@@ -2,7 +2,6 @@ package pl.pateman.holdemevaluator;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -12,18 +11,7 @@ import java.util.stream.Stream;
 
 public final class HoldemEvaluator {
 
-  public static final Comparator<Card> HIGHEST_TO_LOWEST_COMPARATOR = (a, b) -> {
-    if (a == null && b == null) {
-      return 0;
-    }
-    if (a == null) {
-      return -1;
-    }
-    if (b == null) {
-      return 1;
-    }
-    return -a.compareTo(b);
-  };
+  private static final int INCORRECT_LIMIT = -1;
   public static final int MAX_HAND_CARDS = 5;
 
   private int findInHand(final Card[] hand, final Predicate<Card> predicate,
@@ -38,7 +26,7 @@ public final class HoldemEvaluator {
         ++matches;
         dups.add(card);
 
-        if (limit != -1 && matches >= limit) {
+        if (limit != INCORRECT_LIMIT && matches >= limit) {
           break;
         }
       }
@@ -48,7 +36,7 @@ public final class HoldemEvaluator {
 
   private int findInHand(final Card[] hand, final Predicate<Card> predicate,
       final Card[] result) {
-    return findInHand(hand, predicate, -1, result);
+    return findInHand(hand, predicate, INCORRECT_LIMIT, result);
   }
 
   private boolean isStraightFlush(final Card[] hand, final List<Integer> meaningfulCards,
@@ -65,32 +53,45 @@ public final class HoldemEvaluator {
     return straightFlushCheck == MAX_HAND_CARDS;
   }
 
-  public HandOutcome calculate(Card[] holeCards, Card[] table) {
+  private Card findHighestCard(final Card[] hand) {
+    final int aceValue = CardValue.ACE.getValue();
+    Card highest = null;
+    int highestValue = 0;
+
+    for (final Card card : hand) {
+      if (card == null) {
+        continue;
+      }
+      final int cardValue = card.getValue().getValue();
+
+      if (CardValue.ACE.equals(card.getValue())) {
+        highest = card;
+        highestValue = aceValue;
+        continue;
+      }
+
+      if (highestValue != aceValue && cardValue > highestValue) {
+        highest = card;
+        highestValue = cardValue;
+      }
+    }
+
+    return highest;
+  }
+
+  public HandOutcome calculate(final Card[] holeCards, final Card[] table) {
     final byte[] counts = new byte[CardValue.values().length];
     final byte[] suits = new byte[Suit.values().length];
 
-    final Card[] hand = Stream.concat(Arrays.stream(holeCards), Arrays.stream(table))
+    final Card[] hand = Stream
+        .concat(Arrays.stream(holeCards), Arrays.stream(table))
         .toArray(Card[]::new);
 
     final HandOutcome handOutcome = new HandOutcome();
 
     for (final Card card : hand) {
-      final int cardValue = card.getValue().getValue();
-
-      ++counts[cardValue - 1];
+      ++counts[card.getValue().getValue() - 1];
       ++suits[card.getSuit().getValue() - 1];
-
-      if (CardValue.ACE.equals(card.getValue())) {
-        handOutcome.setHighestCard(CardValue.ACE.getValue());
-      }
-
-      if (handOutcome.getHighestCard() != CardValue.ACE.getValue() && cardValue > handOutcome
-          .getHighestCard()) {
-        handOutcome.setHighestCard(cardValue);
-      }
-      if (cardValue < handOutcome.getLowestCard()) {
-        handOutcome.setLowestCard(cardValue);
-      }
     }
 
     HandName outcome = HandName.HIGH_CARD;
@@ -146,6 +147,7 @@ public final class HoldemEvaluator {
       outcome = HandName.STRAIGHT;
     }
 
+    final Card highestCardInHand = this.findHighestCard(hand);
     if (meaningful.size() > MAX_HAND_CARDS) {
       meaningful = meaningful.subList(0, Math.min(MAX_HAND_CARDS, meaningful.size()));
     }
@@ -167,8 +169,8 @@ public final class HoldemEvaluator {
         }
       }
 
-      if (HandName.STRAIGHT_FLUSH.equals(outcome) && handOutcome.getHighestCard() == CardValue.ACE
-          .getValue()) {
+      if (HandName.STRAIGHT_FLUSH.equals(outcome) && highestCardInHand.getValue().getValue() ==
+          CardValue.ACE.getValue()) {
         outcome = HandName.ROYAL_FLUSH;
       }
     }
@@ -179,8 +181,8 @@ public final class HoldemEvaluator {
     int foundCards = 0;
     switch (outcome) {
       case HIGH_CARD:
-        foundCards = findInHand(hand,
-            (card -> card.getValue().getValue() == handOutcome.getHighestCard()),
+        foundCards = this.findInHand(hand,
+            (card -> card.getValue().getValue() == highestCardInHand.getValue().getValue()),
             meaningfulCards);
         break;
       case ONE_PAIR:
@@ -189,46 +191,45 @@ public final class HoldemEvaluator {
       case FULL_HOUSE:
       case QUADS:
       case STRAIGHT:
-        foundCards = findInHand(hand,
+        foundCards = this.findInHand(hand,
             (card -> meaningfulFinal.contains(card.getValue().getValue())),
             meaningfulCards);
         break;
       case FLUSH:
-        foundCards = findInHand(hand, card -> card.getSuit().getValue() == flushSuitToCheck,
+        foundCards = this.findInHand(hand, card -> card.getSuit().getValue() == flushSuitToCheck,
             meaningfulCards);
         break;
       case STRAIGHT_FLUSH:
       case ROYAL_FLUSH:
-        foundCards = findInHand(hand, card -> meaningfulFinal.contains(card.getValue().getValue())
-            && card.getSuit().getValue() == flushSuitToCheck, meaningfulCards);
+        foundCards = this
+            .findInHand(hand, card -> meaningfulFinal.contains(card.getValue().getValue())
+                && card.getSuit().getValue() == flushSuitToCheck, meaningfulCards);
         break;
     }
 
     Card[] resultingTopCards = meaningfulCards;
     if (foundCards != MAX_HAND_CARDS) {
-      Arrays.sort(hand, HIGHEST_TO_LOWEST_COMPARATOR);
       if (HandName.HIGH_CARD.equals(outcome)) {
         resultingTopCards = hand;
+        handOutcome.setHighestCard(highestCardInHand);
       } else {
-        Arrays.sort(meaningfulCards, HIGHEST_TO_LOWEST_COMPARATOR);
-
         final int cardsToFind = MAX_HAND_CARDS - foundCards;
         final Card[] missingCards = new Card[cardsToFind];
-        final int highest = meaningfulCards[cardsToFind].getValue().getValue();
+        final int highest = this.findHighestCard(resultingTopCards).getValue().getValue();
 
-        findInHand(hand,
+        this.findInHand(hand,
             card -> CardValue.ACE.equals(card.getValue()) || card.getValue().getValue() > highest,
             cardsToFind, missingCards);
         resultingTopCards = Stream
             .concat(Arrays.stream(meaningfulCards), Arrays.stream(missingCards))
             .filter(Objects::nonNull)
             .toArray(Card[]::new);
+        handOutcome.setHighestCard(this.findHighestCard(resultingTopCards));
       }
     }
 
     handOutcome.setTopCards(resultingTopCards);
     handOutcome.setHandName(outcome);
-    System.out.println(handOutcome);
     return handOutcome;
   }
 }
