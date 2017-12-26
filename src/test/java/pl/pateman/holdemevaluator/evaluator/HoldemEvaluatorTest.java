@@ -5,12 +5,15 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import pl.pateman.holdemevaluator.Card;
 import pl.pateman.holdemevaluator.CardValue;
 import pl.pateman.holdemevaluator.HandName;
 import pl.pateman.holdemevaluator.Suit;
 import pl.pateman.holdemevaluator.TestUtil;
+import pl.pateman.holdemevaluator.UnitTest;
 
+@Category(UnitTest.class)
 public class HoldemEvaluatorTest {
 
   private Card[] tableCards;
@@ -80,6 +83,16 @@ public class HoldemEvaluatorTest {
         HandName.QUADS);
     //  High card.
     this.assertOutcomeHandName(new Card[]{}, this.tableCards, HandName.HIGH_CARD);
+    this.assertOutcomeHandName(
+        new Card[]{new Card(CardValue.ACE, Suit.SPADES), new Card(CardValue.KING, Suit.HEARTS)},
+        new Card[]{new Card(CardValue.NINE, Suit.HEARTS), new Card(CardValue.SIX, Suit.CLUBS),
+            new Card(CardValue.TEN, Suit.DIAMONDS), new Card(CardValue.JACK, Suit.CLUBS),
+            new Card(CardValue.SEVEN, Suit.HEARTS)}, HandName.HIGH_CARD);
+    this.assertOutcomeHandName(
+        new Card[]{new Card(CardValue.TWO, Suit.DIAMONDS), new Card(CardValue.THREE, Suit.CLUBS)},
+        new Card[]{new Card(CardValue.NINE, Suit.HEARTS), new Card(CardValue.SIX, Suit.CLUBS),
+            new Card(CardValue.TEN, Suit.DIAMONDS), new Card(CardValue.JACK, Suit.CLUBS),
+            new Card(CardValue.SEVEN, Suit.HEARTS)}, HandName.HIGH_CARD);
     //  4H 5C 7S 8H AC 2H 3D - straight.
     this.assertOutcomeHandName(
         new Card[]{new Card(CardValue.FOUR, Suit.HEARTS), new Card(CardValue.FIVE, Suit.CLUBS)},

@@ -11,6 +11,20 @@ repositories {
     mavenCentral()
 }
 
+task integrationTest(type: Test, dependsOn: test)
+
+test {
+    useJUnit {
+        excludeCategories 'pl.pateman.holdemevaluator.IntegrationTest'
+    }
+}
+
+integrationTest {
+    useJUnit {
+        excludeCategories 'pl.pateman.holdemevaluator.UnitTest'
+    }
+}
+
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }

@@ -198,14 +198,19 @@ public final class HoldemEvaluator {
       final byte currentStraightCount) {
     final byte[] cardValueCounts = evaluatorOutcome.getCardValueCounts();
 
-    final boolean aceHighStraight = cardValueCounts[CardValue.ACE.getValue() - 1] >= 1
-        && cardValueCounts[CardValue.KING.getValue() - 1] >= 1;
     byte straightCount = currentStraightCount;
-    if (straightCount == 3 && aceHighStraight) {
-      straightCount = 5;
-      evaluatorOutcome.getMeaningfulCardValues().clear();
-      evaluatorOutcome.getMeaningfulCardValues().addAll(ACE_HIGH_STRAIGHT_VALUES);
-    } else if (straightCount == 0 && cardValueCounts[CardValue.ACE.getValue() - 1] >= 1
+    if (cardValueCounts[CardValue.ACE.getValue() - 1] >= 1
+        && cardValueCounts[CardValue.KING.getValue() - 1] >= 1) {
+      //  If we're here, it means that there might be an ace-high straight, but we need to check for
+      //  sure.
+      if (cardValueCounts[CardValue.QUEEN.getValue() - 1] >= 1
+          && cardValueCounts[CardValue.JACK.getValue() - 1] >= 1
+          && cardValueCounts[CardValue.TEN.getValue() - 1] >= 1) {
+        evaluatorOutcome.getMeaningfulCardValues().clear();
+        evaluatorOutcome.getMeaningfulCardValues().addAll(ACE_HIGH_STRAIGHT_VALUES);
+        straightCount = 5;
+      }
+    } else if (cardValueCounts[CardValue.ACE.getValue() - 1] >= 1
         && cardValueCounts[CardValue.FIVE.getValue() - 1] >= 1) {
       //  If we're here, it means that there might be an ace-low straight, but we need to check for
       //  sure.

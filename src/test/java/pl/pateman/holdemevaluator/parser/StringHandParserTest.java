@@ -4,11 +4,14 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import pl.pateman.holdemevaluator.Card;
 import pl.pateman.holdemevaluator.CardValue;
 import pl.pateman.holdemevaluator.Suit;
 import pl.pateman.holdemevaluator.TestUtil;
+import pl.pateman.holdemevaluator.UnitTest;
 
+@Category(UnitTest.class)
 public class StringHandParserTest {
 
   private StringHandParser parser;
