@@ -1,12 +1,15 @@
-package pl.pateman.holdemevaluator;
+package pl.pateman.holdemevaluator.evaluator;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Before;
 import org.junit.Test;
-import pl.pateman.holdemevaluator.evaluator.HandOutcome;
-import pl.pateman.holdemevaluator.evaluator.HoldemEvaluator;
+import pl.pateman.holdemevaluator.Card;
+import pl.pateman.holdemevaluator.CardValue;
+import pl.pateman.holdemevaluator.HandName;
+import pl.pateman.holdemevaluator.Suit;
+import pl.pateman.holdemevaluator.TestUtil;
 
 public class HoldemEvaluatorTest {
 
@@ -20,28 +23,11 @@ public class HoldemEvaluatorTest {
     assertEquals(handOutcome.getHandName(), expectedHandName);
   }
 
-  private <T> boolean arrayContainsAll(final T[] arrayA, final T[] arrayB) {
-    for (final T b : arrayB) {
-      boolean aContainsB = false;
-      for (final T a : arrayA) {
-        if (a.equals(b)) {
-          aContainsB = true;
-          break;
-        }
-      }
-
-      if (!aContainsB) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   private void assertOutcomeTopCards(final Card[] holeCards, final Card[] tableCards,
       final Card[] expectedTopCards) {
     final HandOutcome handOutcome = this.evaluator.calculate(holeCards, tableCards);
     final Card[] topCards = handOutcome.getTopCards();
-    assertTrue(this.arrayContainsAll(topCards, expectedTopCards));
+    assertTrue(TestUtil.arrayContainsAll(topCards, expectedTopCards));
   }
 
   private void assertOutcomeHighestCard(final Card[] holeCards, final Card[] tableCards,

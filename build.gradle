@@ -2,6 +2,7 @@ group 'pl.pateman'
 version '1.0'
 
 apply plugin: 'java'
+compileTestJava.options.encoding = 'UTF-8'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
