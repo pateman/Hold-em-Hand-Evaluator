@@ -55,6 +55,14 @@ public final class HandOutcome implements Comparable<HandOutcome> {
     if (comparison != 0) {
       return comparison;
     }
-    return this.getHighestCard().compareTo(o.getHighestCard());
+    final Card[] myTopCards = this.getTopCards();
+    final Card[] otherTopCards = o.getTopCards();
+    for (int i = 0; i < myTopCards.length; i++) {
+      final int cardCompare = myTopCards[i].compareTo(otherTopCards[i]);
+      if (cardCompare != 0) {
+        return cardCompare;
+      }
+    }
+    return 0;
   }
 }
