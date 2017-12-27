@@ -56,6 +56,9 @@ public final class HoldemEvaluator {
         straightFlushCards);
     byte straightFlushCheck = 0;
     for (final Card card : straightFlushCards) {
+      if (card == null) {
+        continue;
+      }
       if (card.getSuit().getValue() == suitIndex + 1) {
         ++straightFlushCheck;
       }
@@ -194,34 +197,56 @@ public final class HoldemEvaluator {
     return new FlushInfo(flushSuit, outcome);
   }
 
-  private byte checkStraightEdgeCases(final EvaluatorOutcome evaluatorOutcome,
-      final byte currentStraightCount) {
+  private byte checkStraight(final EvaluatorOutcome evaluatorOutcome) {
     final byte[] cardValueCounts = evaluatorOutcome.getCardValueCounts();
 
-    byte straightCount = currentStraightCount;
-    if (cardValueCounts[CardValue.ACE.getValue() - 1] >= 1
-        && cardValueCounts[CardValue.KING.getValue() - 1] >= 1) {
-      //  If we're here, it means that there might be an ace-high straight, but we need to check for
-      //  sure.
-      if (cardValueCounts[CardValue.QUEEN.getValue() - 1] >= 1
-          && cardValueCounts[CardValue.JACK.getValue() - 1] >= 1
-          && cardValueCounts[CardValue.TEN.getValue() - 1] >= 1) {
-        evaluatorOutcome.getMeaningfulCardValues().clear();
-        evaluatorOutcome.getMeaningfulCardValues().addAll(ACE_HIGH_STRAIGHT_VALUES);
-        straightCount = 5;
+    byte straightCount = 0;
+    final List<Integer> straightValueCards = new ArrayList<>(MAX_HAND_CARDS);
+    for (int i = 0; i < cardValueCounts.length - 1; i++) {
+      final byte count = cardValueCounts[i];
+      if (count >= 1) {
+        if (cardValueCounts[i + 1] >= 1) {
+          ++straightCount;
+          straightValueCards.add(i + 1);
+        } else if (straightCount != (MAX_HAND_CARDS - 1)) {
+          straightCount = 0;
+        } else {
+          ++straightCount;
+          straightValueCards.add(i + 1);
+        }
+      } else {
+        straightCount = 0;
       }
-    } else if (cardValueCounts[CardValue.ACE.getValue() - 1] >= 1
-        && cardValueCounts[CardValue.FIVE.getValue() - 1] >= 1) {
-      //  If we're here, it means that there might be an ace-low straight, but we need to check for
-      //  sure.
-      if (cardValueCounts[CardValue.TWO.getValue() - 1] >= 1
-          && cardValueCounts[CardValue.THREE.getValue() - 1] >= 1
-          && cardValueCounts[CardValue.FOUR.getValue() - 1] >= 1) {
-        evaluatorOutcome.getMeaningfulCardValues().clear();
-        evaluatorOutcome.getMeaningfulCardValues().addAll(ACE_LOW_STRAIGHT_VALUES);
-        straightCount = 5;
+
+      if (straightCount >= MAX_HAND_CARDS) {
+        break;
       }
     }
+
+    if (straightCount != MAX_HAND_CARDS) {
+      //  Edge cases: ace-high straight and ace-low straight respectively.
+      if (cardValueCounts[CardValue.ACE.getValue() - 1] >= 1
+          && cardValueCounts[CardValue.KING.getValue() - 1] >= 1 &&
+          cardValueCounts[CardValue.QUEEN.getValue() - 1] >= 1 &&
+          cardValueCounts[CardValue.JACK.getValue() - 1] >= 1 &&
+          cardValueCounts[CardValue.TEN.getValue() - 1] >= 1) {
+        straightValueCards.addAll(ACE_HIGH_STRAIGHT_VALUES);
+        straightCount = MAX_HAND_CARDS;
+      } else if (cardValueCounts[CardValue.ACE.getValue() - 1] >= 1
+          && cardValueCounts[CardValue.TWO.getValue() - 1] >= 1 &&
+          cardValueCounts[CardValue.THREE.getValue() - 1] >= 1 &&
+          cardValueCounts[CardValue.FOUR.getValue() - 1] >= 1 &&
+          cardValueCounts[CardValue.FIVE.getValue() - 1] >= 1) {
+        straightValueCards.addAll(ACE_LOW_STRAIGHT_VALUES);
+        straightCount = MAX_HAND_CARDS;
+      }
+    }
+
+    if (straightCount == MAX_HAND_CARDS) {
+      evaluatorOutcome.getMeaningfulCardValues().clear();
+      evaluatorOutcome.getMeaningfulCardValues().addAll(straightValueCards);
+    }
+
     return straightCount;
   }
 
@@ -232,18 +257,11 @@ public final class HoldemEvaluator {
         suitCounts, meaningfulCardValues);
     evaluatorOutcome.setHighestCardInHand(this.findHighestCard(hand));
 
-    byte straightCount = 0;
     evaluatorOutcome.setOutcome(HandName.HIGH_CARD);
     for (byte i = 0; i < cardValueCounts.length; i++) {
       final byte count = cardValueCounts[i];
 
-      if (count == 1 && i > 0 && cardValueCounts[i - 1] == 1) {
-        ++straightCount;
-        if (!HandName.SET.equals(evaluatorOutcome.getOutcome())) {
-          meaningfulCardValues.add((int) i);
-        }
-      } else if (count == 2) {
-        straightCount = 0;
+      if (count == 2) {
         if (HandName.ONE_PAIR.equals(evaluatorOutcome.getOutcome())) {
           evaluatorOutcome.setOutcome(HandName.TWO_PAIRS);
         } else if (HandName.HIGH_CARD.equals(evaluatorOutcome.getOutcome())) {
@@ -253,7 +271,6 @@ public final class HoldemEvaluator {
         }
         meaningfulCardValues.add(i + 1);
       } else if (count == 3) {
-        straightCount = 0;
         if (HandName.ONE_PAIR.equals(evaluatorOutcome.getOutcome())) {
           evaluatorOutcome.setOutcome(HandName.FULL_HOUSE);
         } else {
@@ -261,22 +278,19 @@ public final class HoldemEvaluator {
         }
         meaningfulCardValues.add(i + 1);
       } else if (count == 4) {
-        straightCount = 0;
         evaluatorOutcome.setOutcome(HandName.QUADS);
         meaningfulCardValues.add(i + 1);
-      } else if (straightCount == 4 && cardValueCounts[i - 1] == 1) {
-        ++straightCount;
-        if (!HandName.SET.equals(evaluatorOutcome.getOutcome())) {
-          meaningfulCardValues.add((int) i);
-        }
       }
     }
-    //  Edge cases: ace-high straight and ace-low straight.
-    straightCount = this.checkStraightEdgeCases(evaluatorOutcome, straightCount);
 
-    //  Check if there's a straight.
-    if (straightCount >= MAX_HAND_CARDS) {
-      evaluatorOutcome.setOutcome(HandName.STRAIGHT);
+    if (evaluatorOutcome.getOutcome().getValue() <= HandName.SET.getValue()) {
+      //  Edge cases: ace-high straight and ace-low straight.
+      final byte straightCount = this.checkStraight(evaluatorOutcome);
+
+      //  Check if there's a straight.
+      if (straightCount >= MAX_HAND_CARDS) {
+        evaluatorOutcome.setOutcome(HandName.STRAIGHT);
+      }
     }
 
     //  Check if there's a flush/straight flush/royal flush.
