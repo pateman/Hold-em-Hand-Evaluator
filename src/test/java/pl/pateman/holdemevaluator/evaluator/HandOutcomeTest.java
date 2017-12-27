@@ -85,6 +85,6 @@ public class HandOutcomeTest {
 
   @Test
   public void testStraightComparison() throws Exception {
-    
+
   }
 }
